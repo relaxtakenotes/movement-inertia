@@ -1,5 +1,7 @@
 print("sh_dynamicspeed loaded")
 
+local clientInMultiplayer = (CLIENT and !game.SinglePlayer())
+
 CreateConVar("sv_dynamicspeed_indoor_slowwalk", 50, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk while pressing alt indoors (slowwalking). The default is 50")
 CreateConVar("sv_dynamicspeed_indoor_walk", 100, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk indoors. The default is 100")
 CreateConVar("sv_dynamicspeed_indoor_run", 250, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you run indoors. The default is 250")
@@ -39,19 +41,37 @@ local function getOutdoorsState(pos)
     if (tr_1 or tr_2 or tr_3 or tr_4 or tr_5) then return "outdoors" else return "indoors" end
 end
 
-hook.Add("PlayerSpawn", "dynamicspeed_sanity", function(ply,transition)
-	ply.ds_lerpFraction = 1
-	ply.ds_lerpValue = 1
-	ply.ds_lerpFrom = 0
-	ply.ds_lerpTo = 0
-	ply.ds_posState = "indoors"
-	ply.ds_posStatePrevious = "indoors"
-	ply.ds_walkState = "walk"
-	ply.ds_walkStatePrevious = "walk"
-	ply.ds_wasOnGround = true
-end)
+if clientInMultiplayer then
+	hook.Add("InitPostEntity", "dynamicspeed_sanity_client", function()
+		ply = LocalPlayer()
+		ply.ds_lerpFraction = 1
+		ply.ds_lerpValue = 1
+		ply.ds_lerpFrom = 0
+		ply.ds_lerpTo = 0
+		ply.ds_posState = "indoors"
+		ply.ds_posStatePrevious = "indoors"
+		ply.ds_walkState = "walk"
+		ply.ds_walkStatePrevious = "walk"
+		ply.ds_wasOnGround = true
+	end)
+end
+
+if not clientInMultiplayer then
+	hook.Add("PlayerSpawn", "dynamicspeed_sanity", function(ply,transition)
+		ply.ds_lerpFraction = 1
+		ply.ds_lerpValue = 1
+		ply.ds_lerpFrom = 0
+		ply.ds_lerpTo = 0
+		ply.ds_posState = "indoors"
+		ply.ds_posStatePrevious = "indoors"
+		ply.ds_walkState = "walk"
+		ply.ds_walkStatePrevious = "walk"
+		ply.ds_wasOnGround = true
+	end)
+end
 
 hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
+	if clientInMultiplayer then if ply != LocalPlayer() then return end end
 	if GetConVar("sv_dynamicspeed_enabled"):GetInt() != 1 then return end
 
 	ply.ds_posStatePrevious = ply.ds_posState
@@ -74,7 +94,6 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 	local maxspeed = Lerp(ply.ds_lerpValue, ply.ds_lerpFrom, ply.ds_lerpTo)
 	ply.ds_lerpValue = math.Clamp(ply.ds_lerpValue + ply.ds_lerpFraction * FrameTime() * GetConVar("sv_dynamicspeed_lerp_multiplier"):GetFloat(), 0, 1)
 
-
 	if not ply:KeyDown(IN_FORWARD) and not ply:KeyDown(IN_BACK) and not ply:KeyDown(IN_MOVELEFT) and not ply:KeyDown(IN_MOVERIGHT) then
 		if ply.ds_lerpTo < ply.ds_lerpFrom then ply.ds_lerpValue = 1 end
 		if ply.ds_lerpTo > ply.ds_lerpFrom then ply.ds_lerpValue = 0 end
@@ -87,12 +106,24 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 	ply.ds_wasOnGround = ply:OnGround()
 
 	mv:SetMaxClientSpeed(maxspeed)
+
+	-- very strangely, to achieve the same effect as just maxclientspeed in singleplayer, i have to do this in multiplayer
+	if ply.ds_walkState == "run" then
+		ply:SetRunSpeed(maxspeed)
+	elseif ply.ds_walkState == "walk" then
+		ply:SetWalkSpeed(maxspeed)
+	else
+		ply:SetSlowWalkSpeed(maxspeed)
+	end
+
 	ply.ds_actualMaxSpeed = maxspeed
 	ply:SetDuckSpeed(0.3)
 	ply:SetUnDuckSpeed(0.3)
 end)
 
 hook.Add("PlayerStepSoundTime", "dynamicspeed_stepsoundtime", function(ply, iType, bWalking)
+	if clientInMultiplayer then if ply != LocalPlayer() then return end end
+
 	local fMaxSpeed = ply.ds_actualMaxSpeed
 	local fStepTime = (1/fMaxSpeed)*GetConVar("sv_dynamicspeed_stepsoundtime_multiplier"):GetInt() + GetConVar("sv_dynamicspeed_stepsoundtime_offset"):GetInt()
 
