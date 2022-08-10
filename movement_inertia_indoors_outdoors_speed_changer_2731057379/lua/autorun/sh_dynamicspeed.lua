@@ -8,8 +8,9 @@ CreateConVar("sv_dynamicspeed_indoor_run", 250, {FCVAR_REPLICATED, FCVAR_ARCHIVE
 CreateConVar("sv_dynamicspeed_outdoor_slowwalk", 100, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk while pressing alt outdoors (slowwalking). The default is 100")
 CreateConVar("sv_dynamicspeed_outdoor_walk", 150, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk outdoors. The default is 150")
 CreateConVar("sv_dynamicspeed_outdoor_run", 300, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you run outdoors. The default is 300")
-CreateConVar("sv_dynamicspeed_stepsoundtime_offset", 110, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Offset for the footstep sound time. The default is 100")
-CreateConVar("sv_dynamicspeed_stepsoundtime_multiplier", 40000, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Multiplier for the footstep sound time. The default is 40000 (needed due to the way i calculate stepsoundtime)")
+CreateConVar("sv_dynamicspeed_stepsoundtime_add", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Offset for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset")
+CreateConVar("sv_dynamicspeed_stepsoundtime_exponent", 0.6, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Exponent for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset")
+CreateConVar("sv_dynamicspeed_stepsoundtime_mult", 2600, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Multiplier for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset")
 CreateConVar("sv_dynamicspeed_lerp_multiplier", 10, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast you want to transition between speeds.")
 CreateConVar("sv_dynamicspeed_jump_distance", 4, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Some magic number that changes the distance you jump.")
 CreateConVar("sv_dynamicspeed_enabled", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "Quite obvious, isn't it?")
@@ -149,8 +150,11 @@ hook.Add("SetupMove", "footsteps_play_always", function(ply,mv,cmd)
 	end
 
 	if moving and ply:OnGround() and shouldPlay and ply.ds_StepTimer == 0 then
-		local fMaxSpeed = ply.ds_actualMaxSpeed
-		local fStepTime = (1/fMaxSpeed)*GetConVar("sv_dynamicspeed_stepsoundtime_multiplier"):GetInt() + GetConVar("sv_dynamicspeed_stepsoundtime_offset"):GetInt() - 200
+		local fMaxSpeed = ply.ds_actualMaxSpeed + 5
+		local exp = GetConVar("sv_dynamicspeed_stepsoundtime_exponent"):GetFloat()
+		local mult = GetConVar("sv_dynamicspeed_stepsoundtime_mult"):GetFloat()
+		local offset = GetConVar("sv_dynamicspeed_stepsoundtime_add"):GetFloat()
+		local fStepTime = (fMaxSpeed^exp/fMaxSpeed)*mult + offset
 
 		if ply:Crouching() then
 			fStepTime = fStepTime * ply:GetCrouchedWalkSpeed() + 200
@@ -166,7 +170,10 @@ hook.Add("PlayerStepSoundTime", "dynamicspeed_stepsoundtime", function(ply, iTyp
 	if clientInMultiplayer then if ply != LocalPlayer() then return end end
 
 	local fMaxSpeed = ply.ds_actualMaxSpeed
-	local fStepTime = (1/fMaxSpeed)*GetConVar("sv_dynamicspeed_stepsoundtime_multiplier"):GetInt() + GetConVar("sv_dynamicspeed_stepsoundtime_offset"):GetInt()
+	local exp = GetConVar("sv_dynamicspeed_stepsoundtime_exponent"):GetFloat()
+	local mult = GetConVar("sv_dynamicspeed_stepsoundtime_mult"):GetFloat()
+	local offset = GetConVar("sv_dynamicspeed_stepsoundtime_add"):GetFloat()
+	local fStepTime = (fMaxSpeed^exp/fMaxSpeed)*mult + offset
 
 	if (iType == STEPSOUNDTIME_ON_LADDER) then
 		fStepTime = fStepTime + 100
