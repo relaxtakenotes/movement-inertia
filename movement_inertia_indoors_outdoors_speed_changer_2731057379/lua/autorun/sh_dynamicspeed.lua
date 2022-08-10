@@ -1,6 +1,9 @@
 print("sh_dynamicspeed loaded")
 
 local clientInMultiplayer = (CLIENT and !game.SinglePlayer())
+local serverInMultiplayer = (SERVER and !game.SinglePlayer())
+
+if serverInMultiplayer then util.AddNetworkString("ds_PlayerFootstep") end
 
 CreateConVar("sv_dynamicspeed_indoor_slowwalk", 50, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk while pressing alt indoors (slowwalking). The default is 50")
 CreateConVar("sv_dynamicspeed_indoor_walk", 100, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk indoors. The default is 100")
@@ -133,6 +136,29 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 	ply:SetUnDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
 end)
 
+if clientInMultiplayer then
+	net.Receive("ds_PlayerFootstep", function() 
+		-- i dont like this
+		local ply = net.ReadEntity()
+		local foot = net.ReadInt(1)
+		local soundpath = net.ReadString()
+		local volume = 0.2
+		local rf = nil
+		ply:EmitSound(soundpath, 75, 100, volume, CHAN_STATIC, 0, 0)
+	end)
+end
+
+if serverInMultiplayer then
+	hook.Add("PlayerFootstep", "ds_playerfootstephook", function(ply, pos, foot, soundpath, volume, rf)
+		if volume < 0.1 then
+			net.Start("ds_PlayerFootstep")
+			net.WriteEntity(ply)
+			net.WriteInt(foot, 1)
+			net.WriteString(soundpath)
+			net.Send(ply)
+		end
+	end)
+end
 
 hook.Add("SetupMove", "footsteps_play_always", function(ply,mv,cmd)
 	if clientInMultiplayer then return end -- playstepsound is serverside only
@@ -161,7 +187,7 @@ hook.Add("SetupMove", "footsteps_play_always", function(ply,mv,cmd)
 			fStepTime = fStepTime * ply:GetCrouchedWalkSpeed() + 200
 		end
 
-		ply:PlayStepSound(0.5)
+		if serverInMultiplayer then ply:PlayStepSound(0.05) else ply:PlayStepSound(0.2) end
 
 		ply.ds_StepTimer = fStepTime
 	end
