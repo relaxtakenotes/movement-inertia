@@ -130,9 +130,6 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 	ply.ds_actualMaxSpeed = maxspeed 
 	ply:SetDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
 	ply:SetUnDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
-
-	print(ply.ds_actualMaxSpeed)
-
 end)
 
 
