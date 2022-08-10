@@ -135,6 +135,7 @@ end)
 
 
 hook.Add("SetupMove", "footsteps_play_always", function(ply,mv,cmd)
+	if clientInMultiplayer then return end -- playstepsound is serverside only
 
 	if GetConVar("sv_dynamicspeed_footstep_workaround"):GetInt() == 0 then return end
 
