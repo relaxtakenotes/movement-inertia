@@ -3,7 +3,7 @@ print("sh_dynamicspeed loaded")
 local clientInMultiplayer = (CLIENT and !game.SinglePlayer())
 local serverInMultiplayer = (SERVER and !game.SinglePlayer())
 
---if serverInMultiplayer then util.AddNetworkString("ds_PlayerFootstep") end
+if serverInMultiplayer then util.AddNetworkString("ds_PlayerFootstep") end
 
 CreateConVar("sv_dynamicspeed_indoor_slowwalk", 50, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk while pressing alt indoors (slowwalking). The default is 50")
 CreateConVar("sv_dynamicspeed_indoor_walk", 100, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "How fast will you walk indoors. The default is 100")
@@ -115,57 +115,84 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 	end
 
 	ply.ds_wasOnGround = ply:OnGround()
+	if GetConVar("sv_dynamicspeed_enabled"):GetInt() == 1 then
+		mv:SetMaxClientSpeed(maxspeed)
+		-- very strangely, to achieve the same effect as just maxclientspeed in singleplayer, i have to do this in multiplayer
+		if ply.ds_walkState == "run" then
+			ply:SetRunSpeed(maxspeed)
+		elseif ply.ds_walkState == "walk" then
+			ply:SetWalkSpeed(maxspeed)
+		else
+			ply:SetSlowWalkSpeed(maxspeed)
+		end
 
-	mv:SetMaxClientSpeed(maxspeed)
+		if ply:Crouching() then
+			maxspeed = maxspeed * ply:GetCrouchedWalkSpeed()
+		end
 
-	-- very strangely, to achieve the same effect as just maxclientspeed in singleplayer, i have to do this in multiplayer
-	if ply.ds_walkState == "run" then
-		ply:SetRunSpeed(maxspeed)
-	elseif ply.ds_walkState == "walk" then
-		ply:SetWalkSpeed(maxspeed)
+		ply.ds_actualMaxSpeed = maxspeed
 	else
-		ply:SetSlowWalkSpeed(maxspeed)
+		ply.ds_actualMaxSpeed = mv:GetMaxClientSpeed()
 	end
-
-	if ply:Crouching() then
-		maxspeed = maxspeed * ply:GetCrouchedWalkSpeed()
-	end
-
-	ply.ds_actualMaxSpeed = maxspeed 
 	ply:SetDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
 	ply:SetUnDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
 end)
 
---if clientInMultiplayer then
---	hook.Add("PlayerFootstep", "ds_testhook", function(ply, pos, foot, soundpath, volume, rf)
---		print("sasdasd", pos)
---		ply:EmitSound(soundpath, 75, 100, volume, CHAN_STATIC, 0, 0)
---	end)
---
---	net.Receive("ds_PlayerFootstep", function() 
---		-- i dont like this
---		local ply = net.ReadEntity()
---		local foot = net.ReadInt(1)
---		local soundpath = net.ReadString()
---		local volume = 0.2
---		local rf = nil
---		--ply:EmitSound(soundpath, 75, 100, volume, CHAN_STATIC, 0, 0)
---		hook.Run("PlayerFootstep", ply, ply:GetPos(), foot, soundpath, volume, rf)
---	end)
---end
+if clientInMultiplayer then
+	hook.Add("PlayerFootstep", "ds_testhook", function(ply, pos, foot, soundpath, volume, rf)
+		if GetConVar("sv_dynamicspeed_footstep_workaround"):GetInt() == 0 then return end
+		--if clientInMultiplayer then if ply != LocalPlayer() then return end end
+		local speed = ply.ds_actualMaxSpeed or ply:GetVelocity():Length()
 
---if serverInMultiplayer then
---	hook.Add("PlayerFootstep", "ds_playerfootstephook", function(ply, pos, foot, soundpath, volume, rf)
---		if volume < 0.1 then
---			ply:EmitSound(soundpath, 75, 100, 0.2, CHAN_STATIC, 0, 0)
---			net.Start("ds_PlayerFootstep")
---			net.WriteEntity(ply)
---			net.WriteInt(foot, 1)
---			net.WriteString(soundpath)
---			net.Send(ply)
---		end
---	end)
---end
+		if ply:Crouching() then
+			shouldPlay = (speed < 60)
+		else
+			shouldPlay = (speed < 90)
+		end
+
+		if shouldPlay then
+			ply:EmitSound(soundpath, 75, 100, volume, CHAN_STATIC, 0, 0)
+		end
+	end)
+
+	net.Receive("ds_PlayerFootstep", function() 
+		-- i dont like this
+		if GetConVar("sv_dynamicspeed_footstep_workaround"):GetInt() == 0 then return end
+
+		local ply = net.ReadEntity()
+		local pos = net.ReadVector()
+		local foot = net.ReadInt(1)
+		local soundpath = net.ReadString()
+		local volume = net.ReadFloat()
+		local rf = nil
+
+		--ply:EmitSound(soundpath, 75, 100, volume, CHAN_STATIC, 0, 0)
+		hook.Run("PlayerFootstep", ply, ply:GetPos(), foot, soundpath, volume, rf)
+	end)
+end
+
+if serverInMultiplayer then
+	hook.Add("PlayerFootstep", "ds_playerfootstephook", function(ply, pos, foot, soundpath, volume, rf)
+		if GetConVar("sv_dynamicspeed_footstep_workaround"):GetInt() == 0 then return end
+
+		if ply:Crouching() then
+			shouldPlay = (ply.ds_actualMaxSpeed < 60)
+		else
+			shouldPlay = (ply.ds_actualMaxSpeed < 90)
+		end
+
+		if shouldPlay and ply.ds_StepTimer == 0 then
+			--ply:EmitSound(soundpath, 75, 100, 0.2, CHAN_STATIC, 0, 0)
+			net.Start("ds_PlayerFootstep")
+			net.WriteEntity(ply)
+			net.WriteVector(pos)
+			net.WriteInt(foot, 1)
+			net.WriteString(soundpath)
+			net.WriteFloat(volume)
+			net.Send(ply)
+		end
+	end)
+end
 
 hook.Add("SetupMove", "footsteps_play_always", function(ply,mv,cmd)
 	if clientInMultiplayer then return end -- playstepsound is serverside only
@@ -191,10 +218,8 @@ hook.Add("SetupMove", "footsteps_play_always", function(ply,mv,cmd)
 		local fStepTime = (fMaxSpeed^exp/fMaxSpeed)*mult + offset
 
 		if ply:Crouching() then
-			fStepTime = fStepTime * ply:GetCrouchedWalkSpeed() + 200
+			fStepTime = fStepTime * ply:GetCrouchedWalkSpeed() + 400
 		end
-
-		--if serverInMultiplayer then ply:PlayStepSound(0.05) else ply:PlayStepSound(0.2) end
 
 		ply:PlayStepSound(0.2)
 
