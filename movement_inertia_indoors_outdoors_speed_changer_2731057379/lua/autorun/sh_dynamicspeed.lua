@@ -84,7 +84,6 @@ end
 
 hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 	if clientInMultiplayer then if ply != LocalPlayer() then return end end
-	if GetConVar("sv_dynamicspeed_enabled"):GetInt() != 1 then return end
 
 	local moving = (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT))
 
@@ -102,9 +101,11 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 		ply.ds_lerpValue = 0
 		ply.ds_lerpTo = speeds[ply.ds_posState][ply.ds_walkState]
 		ply.ds_lerpFrom = ply.ds_actualMaxSpeed
-		ply:SetRunSpeed(speeds[ply.ds_posState]["run"])
-		ply:SetWalkSpeed(speeds[ply.ds_posState]["walk"])
-		ply:SetSlowWalkSpeed(speeds[ply.ds_posState]["slowwalk"])
+		if GetConVar("sv_dynamicspeed_enabled"):GetInt() == 1 then
+			ply:SetRunSpeed(speeds[ply.ds_posState]["run"])
+			ply:SetWalkSpeed(speeds[ply.ds_posState]["walk"])
+			ply:SetSlowWalkSpeed(speeds[ply.ds_posState]["slowwalk"])
+		end
 	end
 
 	ply.ds_lerpValue = math.Clamp(ply.ds_lerpValue + ply.ds_lerpFraction * FrameTime() * GetConVar("sv_dynamicspeed_lerp_multiplier"):GetFloat(), 0, 1)
@@ -132,7 +133,7 @@ hook.Add("SetupMove", "dynamicspeed_think", function(ply,mv)
 
 		ply.ds_actualMaxSpeed = maxspeed
 	else
-		ply.ds_actualMaxSpeed = mv:GetMaxClientSpeed()
+		ply.ds_actualMaxSpeed = ply:GetVelocity():Length() --mv:GetMaxClientSpeed()
 	end
 	ply:SetDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
 	ply:SetUnDuckSpeed(GetConVar("sv_dynamicspeed_crouch_speed"):GetFloat())
