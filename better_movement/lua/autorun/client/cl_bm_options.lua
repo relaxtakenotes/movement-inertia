@@ -11,6 +11,8 @@ hook.Add("PopulateToolMenu", "bm_settings_populate", function()
         panel:ControlHelp("Speed multiplier for how fast you want to interpolate between speeds")
         panel:NumSlider("Clientside Lerp Multiplier", better_movement.cvars.cli_lerp:GetName(), 0, 20, 1)
         panel:ControlHelp("Same as above but for the clientside inertia")
+        panel:NumSlider("Enviroment Check Timer", better_movement.cvars.env_check_timer:GetName(), 0.1, 5, 1)
+        panel:ControlHelp("How often to check if someone is outside or not. (The process is pretty expensive when there is more than 1 person, hence this)")
 
         panel:NumSlider("Add", better_movement.cvars.sst_add:GetName(), -1000, 1000)
         panel:ControlHelp("Used for step sound time calculation")
@@ -21,6 +23,9 @@ hook.Add("PopulateToolMenu", "bm_settings_populate", function()
 
         panel:NumSlider("Limit jump distance", better_movement.cvars.limit_jump_distance:GetName(), 1, 10)
         panel:NumSlider("Crouch Speed", better_movement.cvars.crouch_speed:GetName(), 0.1, 1, 2)
+
+        panel:CheckBox("Enable Boosted Run", better_movement.cvars.enable_boost:GetName())
+        panel:ControlHelp("Press the sprint button two times in a 100ms time window to activate a boosted run.")
     end)
 
     spawnmenu.AddToolMenuOption("Options", "bm_8841", "bm_8841_speed", "Speeds", nil, nil, function(panel)

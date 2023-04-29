@@ -13,11 +13,12 @@ better_movement.cvars.cli_lerp = CreateConVar("sv_bm_clientside_inertia_lerp", 8
 better_movement.cvars.force_footsteps = CreateConVar("sv_bm_force_footsteps", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Force footsteps to play even if the game thinks you're too slow for it.")
 better_movement.cvars.limit_jump_distance = CreateConVar("sv_bm_limit_jump_distance", 4, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "yea.")
 better_movement.cvars.crouch_speed = CreateConVar("sv_bm_crouch_speed", 0.3, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "yea.")
-
+better_movement.cvars.enable_boost = CreateConVar("sv_bm_enable_boosted_run", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Enable a custom boosted run thing.")
+better_movement.cvars.env_check_timer = CreateConVar("sv_bm_env_check_timer", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How often to run the enviroment check (in seconds).")
 
 for env, mult in pairs({["outdoors"] = 1, ["indoors"] = 0.75}) do
     better_movement.speed[env] = {}
-    for mv, speed in pairs({["normal"] = 200, ["run"] = 350, ["slow"] = 100}) do
+    for mv, speed in pairs({["normal"] = 200, ["run"] = 350, ["slow"] = 100, ["boosted_run"] = 400}) do
         better_movement.speed[env][mv] = CreateConVar("sv_bm_"..env.."_"..mv, speed * mult, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL})
     end
 end
@@ -62,32 +63,49 @@ hook.Add("PlayerStepSoundTime", "bm_stepsoundtime", function(ply, iType, bWalkin
     return fsteptime
 end)
 
-hook.Add("SetupMove", "bm_set_env_state", function(ply, mv)
-    if not better_movement.cvars.is_enabled:GetBool() then return end
-
-    ply:SetNW2String("bm_env_state_prev", ply:GetNW2String("bm_env_state") or "outdoors")
-    ply:SetNW2String("bm_env_state", get_env_state(ply:GetPos()))
-end)
-
 hook.Add("SetupMove", "bm_regulate_speed", function(ply, mv)
     if not better_movement.cvars.is_enabled:GetBool() then return end
 
     ply.bm_walk_state_prev = ply.bm_walk_state or "normal"
     ply.bm_walk_state = "normal"
-    if mv:KeyDown(IN_SPEED) then ply.bm_walk_state = "run" end
+
+    ply.bm_boosted_run_timer = math.max((ply.bm_boosted_run_timer or 0) - FrameTime(), 0)
+    if ply.bm_boosted_run_timer == 0 then ply.bm_boosted_run_counter = 0 end
+
+    if mv:KeyDown(IN_SPEED) then
+        if mv:KeyWasDown(IN_SPEED) != mv:KeyDown(IN_SPEED) then ply.bm_boosted_run_counter = (ply.bm_boosted_run_counter or 0) + 1 end
+        ply.bm_boosted_run_timer = 0.1
+        ply.bm_walk_state = "run"
+        if better_movement.cvars.enable_boost:GetBool() and ply.bm_boosted_run_counter >= 2 then ply.bm_walk_state = "boosted_run" end
+    end
+
     if mv:KeyDown(IN_WALK) then ply.bm_walk_state = "slow" end
 
-    local env_state = ply:GetNW2String("bm_env_state")
-    local env_state_prev = ply:GetNW2String("bm_env_state_prev")
+    if (ply.bm_env_check_timer or 99999) > better_movement.cvars.env_check_timer:GetFloat() then
+        ply.bm_env_state_prev = ply.bm_env_state or "outdoors"
+        ply.bm_env_state = get_env_state(ply:GetPos())
+        ply.bm_env_check_timer = 0
+    end
 
-    if (env_state != env_state_prev or ply.bm_walk_state != ply.bm_walk_state_prev) or ply.bm_first_time == nil then
+    ply.bm_env_check_timer = ply.bm_env_check_timer + FrameTime()
+
+    if string.len(ply.bm_env_state) == 0 then ply.bm_env_state = "outdoors" end
+    if string.len(ply.bm_env_state_prev) == 0 then ply.bm_env_state_prev = "outdoors" end
+
+    if (ply.bm_env_state != ply.bm_env_state_prev or ply.bm_walk_state != ply.bm_walk_state_prev) or ply.bm_first_time == nil then
         ply.bm_lerp_value = 0
-        ply.bm_lerp_to = better_movement.speed[env_state][ply.bm_walk_state]:GetFloat()
+
+        ply.bm_lerp_to = better_movement.speed[ply.bm_env_state][ply.bm_walk_state]:GetFloat()
         ply.bm_lerp_from = ply:GetVelocity():Length()
 
-        ply:SetRunSpeed(better_movement.speed[env_state]["run"]:GetFloat())
-        ply:SetWalkSpeed(better_movement.speed[env_state]["normal"]:GetFloat())
-        ply:SetSlowWalkSpeed(better_movement.speed[env_state]["slow"]:GetFloat())
+        if ply.bm_walk_state == "boosted_run" then
+            ply:SetRunSpeed(better_movement.speed[ply.bm_env_state]["boosted_run"]:GetFloat())
+        else
+            ply:SetRunSpeed(better_movement.speed[ply.bm_env_state]["run"]:GetFloat())
+        end
+
+        ply:SetWalkSpeed(better_movement.speed[ply.bm_env_state]["normal"]:GetFloat())
+        ply:SetSlowWalkSpeed(better_movement.speed[ply.bm_env_state]["slow"]:GetFloat())
 
         ply.bm_first_time = false
     end
