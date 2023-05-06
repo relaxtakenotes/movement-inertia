@@ -1,20 +1,27 @@
 better_movement = {}
-better_movement.cvars = {}
 better_movement.speed = {}
+better_movement.cvars = {
+    is_enabled = CreateConVar("sv_bm_enabled", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Enable the better footsteps thing."),
+    sst_add = CreateConVar("sv_bm_stepsoundtime_add", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Offset for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset"),
+    sst_exponent = CreateConVar("sv_bm_stepsoundtime_exponent", 0.6, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Exponent for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset"),
+    sst_mult = CreateConVar("sv_bm_stepsoundtime_mult", 2600, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Multiplier for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset"),
+    remove_weapon_setupmove = CreateConVar("sv_bm_remove_weapon_setupmove", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Remove all the hooks related to modifying movements from weapon packs. Once removed only restarting the server will return them."),
+    lerp_speed = CreateConVar("sv_bm_lerp_multiplier", 3, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How fast you want to transition between speeds."),
+    clientside_inertia = CreateConVar("sv_bm_clientside_inertia", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Allow some inertia to be calculated and applied clientside."),
+    cli_lerp = CreateConVar("sv_bm_clientside_inertia_lerp", 8, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How fast to lerp between some stuff for inertia."),
+    force_footsteps = CreateConVar("sv_bm_force_footsteps", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Force footsteps to play even if the game thinks you're too slow for it."),
+    limit_jump_distance = CreateConVar("sv_bm_limit_jump_distance", 4, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Limit jump distance magic number!"),
+    crouch_speed = CreateConVar("sv_bm_crouch_speed", 0.3, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Crouch speed time..."),
+    disable_strafe_in_air = CreateConVar("sv_bm_disable_strafe_in_air", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Disable strafing in air."),
+    stop_after_landing = CreateConVar("sv_bm_stop_after_landing", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Disable strafing in air."),
+    enable_boost = CreateConVar("sv_bm_enable_boosted_run", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Enable a custom boosted run thing."),
+    env_check_timer = CreateConVar("sv_bm_env_check_timer", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How often to run the enviroment check (in seconds)."),
+    env_check_predict = CreateConVar("sv_bm_env_check_predict", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Whether or not to predict a player for the enviroment check given the env check timer."),
+    env_check_predict_time = CreateConVar("sv_bm_env_check_predict_time", 75, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Time multiplier for env check prediction."),
+    env_check_sudden_velocity = CreateConVar("sv_bm_env_check_sudden_velocity", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Force and enviroment check if the velocity has changed too much."),
+    env_check_sudden_velocity_angle = CreateConVar("sv_bm_env_check_sudden_velocity_angle", 60, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How big of a velocity change is considered sudden")
+}
 
-better_movement.cvars.is_enabled = CreateConVar("sv_bm_enabled", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Enable the better footsteps thing.")
-better_movement.cvars.sst_add = CreateConVar("sv_bm_stepsoundtime_add", 0, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Offset for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset")
-better_movement.cvars.sst_exponent = CreateConVar("sv_bm_stepsoundtime_exponent", 0.6, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Exponent for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset")
-better_movement.cvars.sst_mult = CreateConVar("sv_bm_stepsoundtime_mult", 2600, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Multiplier for the footstep sound time. (formula: (fMaxSpeed^exp/fMaxSpeed)*mult + offset")
-better_movement.cvars.remove_weapon_setupmove = CreateConVar("sv_bm_remove_weapon_setupmove", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Remove all the hooks related to modifying movements from weapon packs. Once removed only restarting the server will return them.")
-better_movement.cvars.lerp_speed = CreateConVar("sv_bm_lerp_multiplier", 3, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How fast you want to transition between speeds.")
-better_movement.cvars.clientside_inertia = CreateConVar("sv_bm_clientside_inertia", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Allow some inertia to be calculated and applied clientside.")
-better_movement.cvars.cli_lerp = CreateConVar("sv_bm_clientside_inertia_lerp", 8, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How fast to lerp between some stuff for inertia.")
-better_movement.cvars.force_footsteps = CreateConVar("sv_bm_force_footsteps", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Force footsteps to play even if the game thinks you're too slow for it.")
-better_movement.cvars.limit_jump_distance = CreateConVar("sv_bm_limit_jump_distance", 4, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "yea.")
-better_movement.cvars.crouch_speed = CreateConVar("sv_bm_crouch_speed", 0.3, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "yea.")
-better_movement.cvars.enable_boost = CreateConVar("sv_bm_enable_boosted_run", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "Enable a custom boosted run thing.")
-better_movement.cvars.env_check_timer = CreateConVar("sv_bm_env_check_timer", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_GAMEDLL}, "How often to run the enviroment check (in seconds).")
 
 for env, mult in pairs({["outdoors"] = 1, ["indoors"] = 0.75}) do
     better_movement.speed[env] = {}
@@ -63,9 +70,53 @@ hook.Add("PlayerStepSoundTime", "bm_stepsoundtime", function(ply, iType, bWalkin
     return fsteptime
 end)
 
-hook.Add("SetupMove", "bm_regulate_speed", function(ply, mv)
-    if not better_movement.cvars.is_enabled:GetBool() then return end
+local function calculate_env(ply, mv)
+    ply.bm_env_state_prev = ply.bm_env_state or "outdoors"
+    local ang = ply:GetVelocity():Angle().y
+    local angle_delta = math.abs((ply.bm_env_ang_last or ang) - ang)
 
+    local pos = ply:GetPos()
+    local pos_dist = (ply.bm_last_pos or pos):Distance(pos)
+    ply.bm_last_pos = pos
+
+    local pos_dist_2 = (ply.bm_last_pos_2 or pos + Vector(9999, 9999, 9999)):Distance(pos)
+    
+    local timer_trigger = (ply.bm_env_check_timer or 99999) > better_movement.cvars.env_check_timer:GetFloat()
+    local angle_trigger = angle_delta > better_movement.cvars.env_check_sudden_velocity_angle:GetFloat() and better_movement.cvars.env_check_sudden_velocity:GetBool()
+    local pos_trigger = pos_dist > 100
+    local pos_2_trigger = pos_dist_2 > 10
+
+    if (timer_trigger or angle_trigger or pos_trigger) and pos_2_trigger then
+        ply.bm_env_ang_last = ang
+        ply.bm_last_pos_2 = pos
+        
+        local vel = ply:GetVelocity()
+        vel.z = 0    
+
+        if better_movement.cvars.env_check_predict:GetBool() then
+            local mins, maxs = ply:GetCollisionBounds()
+            maxs = maxs - Vector(0,0,64)
+            local tr = util.TraceHull({
+                start = ply:EyePos(),
+                endpos = ply:EyePos() + vel * FrameTime() * better_movement.cvars.env_check_timer:GetFloat() * better_movement.cvars.env_check_predict_time:GetFloat(),
+                maxs = maxs,
+                mins = mins,
+                filter = ply
+            })
+            ply.bm_env_state = get_env_state(tr.HitPos)
+        else
+            ply.bm_env_state = get_env_state(ply:GetPos())
+        end
+
+        ply.bm_env_check_timer = 0
+    end
+    ply.bm_env_check_timer = (ply.bm_env_check_timer or 0) + FrameTime()
+
+    if not ply.bm_env_state then ply.bm_env_state = "outdoors" end
+    if not ply.bm_env_state_prev then ply.bm_env_state_prev = "outdoors" end   
+end
+
+local function calculate_walk_state(ply, mv)
     ply.bm_walk_state_prev = ply.bm_walk_state or "normal"
     ply.bm_walk_state = "normal"
 
@@ -80,17 +131,24 @@ hook.Add("SetupMove", "bm_regulate_speed", function(ply, mv)
     end
 
     if mv:KeyDown(IN_WALK) then ply.bm_walk_state = "slow" end
+end
 
-    if (ply.bm_env_check_timer or 99999) > better_movement.cvars.env_check_timer:GetFloat() then
-        ply.bm_env_state_prev = ply.bm_env_state or "outdoors"
-        ply.bm_env_state = get_env_state(ply:GetPos())
-        ply.bm_env_check_timer = 0
+hook.Add("OnPlayerHitGround", "bm_land", function(ply, inWater, onFloater, speed) 
+    if not better_movement.cvars.is_enabled:GetBool() then return end
+    if not better_movement.cvars.stop_after_landing:GetBool() then return end
+
+    if ply:OnGround() then
+        ply.bm_lerp_value = 0
+        ply.bm_lerp_to = better_movement.speed[ply.bm_env_state][ply.bm_walk_state]:GetFloat()
+        ply.bm_lerp_from = math.min(ply:GetVelocity():Length() / 4, 300)
     end
+end)
 
-    ply.bm_env_check_timer = ply.bm_env_check_timer + FrameTime()
+hook.Add("SetupMove", "bm_regulate_speed", function(ply, mv)
+    if not better_movement.cvars.is_enabled:GetBool() then return end
 
-    if string.len(ply.bm_env_state) == 0 then ply.bm_env_state = "outdoors" end
-    if string.len(ply.bm_env_state_prev) == 0 then ply.bm_env_state_prev = "outdoors" end
+    calculate_walk_state(ply, mv)
+    calculate_env(ply, mv)
 
     if (ply.bm_env_state != ply.bm_env_state_prev or ply.bm_walk_state != ply.bm_walk_state_prev) or ply.bm_first_time == nil then
         ply.bm_lerp_value = 0
@@ -114,16 +172,22 @@ hook.Add("SetupMove", "bm_regulate_speed", function(ply, mv)
         ply.bm_lerp_value = math.Clamp((ply.bm_lerp_value or 0) + FrameTime() * better_movement.cvars.lerp_speed:GetFloat(), 0, 1)
     end
 
-    if ply:KeyDown(IN_SPEED) and ply.bm_was_onground != ply:OnGround() and ply:KeyDown(IN_JUMP) and !ply:OnGround() and ply:WaterLevel() < 3 then
+    local onground = ply:OnGround()
+    if ply:KeyDown(IN_SPEED) and ply.bm_was_onground != onground and ply:KeyDown(IN_JUMP) and !ply:OnGround() and ply:WaterLevel() < 3 then
         ply:SetVelocity(Vector(-ply:GetVelocity().x/math.max(1,(better_movement.cvars.limit_jump_distance:GetFloat())),-ply:GetVelocity().y/math.max(1,better_movement.cvars.limit_jump_distance:GetFloat()),0))
     end
-    ply.bm_was_onground = ply:OnGround()
+    ply.bm_was_onground = onground
+
+    if not onground and ply:GetMoveType() != MOVETYPE_NOCLIP and better_movement.cvars.disable_strafe_in_air:GetBool() then
+        mv:SetSideSpeed(0)
+        mv:SetForwardSpeed(0)
+    end
 
     local maxspeed = Lerp(ply.bm_lerp_value, ply.bm_lerp_from, ply.bm_lerp_to)
 
     ply:SetMaxSpeed(maxspeed)
 
-    if ply.bm_walk_state == "run" then
+    if ply.bm_walk_state == "run" or ply.bm_walk_state == "boosted_run" then
         ply:SetRunSpeed(maxspeed)
     elseif ply.bm_walk_state == "normal" then
         ply:SetWalkSpeed(maxspeed)

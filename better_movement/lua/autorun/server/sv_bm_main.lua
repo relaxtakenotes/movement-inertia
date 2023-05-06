@@ -30,16 +30,16 @@ hook.Add("SetupMove", "bm_force_foosteps", function(ply, mv)
     local should_play = false
     local moving = (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT))
     ply.bm_fsteptime = math.max((ply.bm_fsteptime or 0) - 1000 * FrameTime(), 0)
+    local fmaxspeed = ply:GetMaxSpeed()
 
     -- https://github.com/lua9520/source-engine-2018-hl2_src/blob/3bf9df6b2785fa6d951086978a3e66f49427166a/game/shared/baseplayer_shared.cpp#L770
     if ply:Crouching() then
-        should_play = ply:GetMaxSpeed() < 60
+        should_play = fmaxspeed * ply:GetCrouchedWalkSpeed() < 60
     else
-        should_play = ply:GetMaxSpeed() < 90
+        should_play = fmaxspeed < 90
     end
 
     if moving and ply:OnGround() and should_play and ply.bm_fsteptime == 0 then
-        local fmaxspeed = ply:GetMaxSpeed()
         local exp = better_movement.cvars.sst_exponent:GetFloat()
         local mult = better_movement.cvars.sst_mult:GetFloat()
         local offset = better_movement.cvars.sst_add:GetFloat()
