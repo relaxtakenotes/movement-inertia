@@ -178,7 +178,7 @@ hook.Add("SetupMove", "bm_regulate_speed", function(ply, mv)
     end
     ply.bm_was_onground = onground
 
-    if not onground and ply:GetMoveType() != MOVETYPE_NOCLIP and better_movement.cvars.disable_strafe_in_air:GetBool() then
+    if not onground and ply:GetMoveType() == MOVETYPE_WALK and ply:WaterLevel() == 0 and better_movement.cvars.disable_strafe_in_air:GetBool() then
         mv:SetSideSpeed(0)
         mv:SetForwardSpeed(0)
     end
