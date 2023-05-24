@@ -1,14 +1,14 @@
-if not game.SinglePlayer() then util.AddNetworkString("bm_player_footstep") end
-
 if not game.SinglePlayer() then
+    util.AddNetworkString("bm_player_footstep")
+
     hook.Add("PlayerFootstep", "bm_network_slow_footstep", function(ply, pos, foot, soundpath, volume, rf)
         if not better_movement.cvars.force_footsteps:GetBool() then return end
         if ply:InVehicle() then return end
 
         if ply:Crouching() then
-            should_play = (ply:GetMaxSpeed() < 60)
+            should_play = (ply:GetVelocity():Length() < 60)
         else
-            should_play = (ply:GetMaxSpeed() < 90)
+            should_play = (ply:GetVelocity():Length() < 90)
         end
 
         if should_play and ply.bm_fsteptime == 0 then
@@ -23,18 +23,17 @@ if not game.SinglePlayer() then
     end)
 end
  
-hook.Add("SetupMove", "bm_force_foosteps", function(ply, mv) 
+hook.Add("SetupMove", "bm_force_foosteps", function(ply, mv)
     if not better_movement.cvars.force_footsteps:GetBool() then return end
     if ply:InVehicle() then return end
 
     local should_play = false
     local moving = (ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT))
     ply.bm_fsteptime = math.max((ply.bm_fsteptime or 0) - 1000 * FrameTime(), 0)
-    local fmaxspeed = ply:GetMaxSpeed()
-
+    local fmaxspeed = ply:GetVelocity():Length()
     -- https://github.com/lua9520/source-engine-2018-hl2_src/blob/3bf9df6b2785fa6d951086978a3e66f49427166a/game/shared/baseplayer_shared.cpp#L770
     if ply:Crouching() then
-        should_play = fmaxspeed * ply:GetCrouchedWalkSpeed() < 60
+        should_play = fmaxspeed < 60
     else
         should_play = fmaxspeed < 90
     end

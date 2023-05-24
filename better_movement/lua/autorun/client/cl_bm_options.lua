@@ -34,6 +34,10 @@ hook.Add("PopulateToolMenu", "bm_settings_populate", function()
 
         panel:CheckBox("Reduce velocity on landing", better_movement.cvars.stop_after_landing:GetName())
         panel:CheckBox("Disable in air movement", better_movement.cvars.disable_strafe_in_air:GetName())
+        panel:NumSlider("Slowdown non forward", better_movement.cvars.slowdown_non_forward:GetName(), 0, 300, 1)
+        panel:ControlHelp("Speed multiplier for when you're going in any other directuon but forward.")
+
+
         panel:NumSlider("Limit jump distance", better_movement.cvars.limit_jump_distance:GetName(), 1, 10)
         panel:NumSlider("Crouch Speed", better_movement.cvars.crouch_speed:GetName(), 0.1, 1, 2)
 
@@ -41,6 +45,12 @@ hook.Add("PopulateToolMenu", "bm_settings_populate", function()
 
         panel:CheckBox("Enable Boosted Run", better_movement.cvars.enable_boost:GetName())
         panel:ControlHelp("Press the sprint button two times in a 100ms time window to activate a boosted run.")
+
+        panel:ControlHelp("\n")
+
+        panel:Button("Reset all settings", "sv_bm_reset")
+        panel:ControlHelp("Set sv_bm_reset_verification to \"agree\" before using this button. Otherwise nothing will happen.")
+
     end)
 
     spawnmenu.AddToolMenuOption("Options", "bm_8841", "bm_8841_speed", "Speeds", nil, nil, function(panel)
